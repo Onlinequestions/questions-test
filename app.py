@@ -10,7 +10,7 @@ app.secret_key = 'zjWvyV_bL1UfqA0G_XJqRwfB8P2uYsNhOiqDfvYZGn4='  # Замени�
 
 # Настройки для авторизации в Google Sheets API
 SCOPE = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-CREDENTIALS_FILE = 'online-questions-460117-8c2f824b82db.json'  # Путь к файлу с ключами
+CREDENTIALS_FILE = 'data/single-cab-460119-a7-38f35d183f6f.json'  # Новый путь к файлу с ключами
 SHEET_NAME = 'Результаты тестируемых'  # Название листа в Google Sheets
 
 
@@ -59,7 +59,7 @@ def show_test():
     test_data = session.get('test')
     selected_questions = test_data['selected_questions']
 
-    # Перемешиваем варианты ответов для вопросов с выбором
+    # Перемешивание вариантов ответов для вопросов с выбором
     for question_type in selected_questions.keys():
         shuffle_answers(selected_questions[question_type])
 
@@ -68,9 +68,6 @@ def show_test():
 
 @app.route('/submit_test', methods=['POST'])
 def submit_test():
-    """
-    Отправляет результаты теста в Google Sheets и выводит итоговую оценку.
-    """
     if 'test' not in session:
         return redirect('/')
 
@@ -82,17 +79,19 @@ def submit_test():
     correct_count = 0  # Количество правильных ответов
     total_questions = 0  # Всего вопросов
 
-    # Проходим по каждому типу вопросов и проверяем ответы
+    # Проверка правильности ответов
     for qtype, questions in test_data['selected_questions'].items():
         for i, question in enumerate(questions):
             key = f"{qtype}_{i}"
-            answer = request.form[key]
+            answer = request.form.get(key)
 
-            is_correct = check_answer(qtype, question, answer)
-            if is_correct:
-                correct_count += 1
+            if answer is not None:
+                if check_answer(qtype, question, answer):
+                    correct_count += 1
 
-            user_answers[f'{qtype}_Q{i + 1}'] = answer
+                user_answers.setdefault(qtype, {})[key] = answer
+            else:
+                print(f"Warning: Question '{key}' did not have an answer submitted.")
 
         total_questions += len(questions)
 
@@ -108,59 +107,63 @@ def submit_test():
 
 
 def load_questions(question_type):
-    """
-    Загружаем вопросы из соответствующих JSON-файлов.
-    """
-    with open(f'data/{question_type}_questions.json') as file:
+    # Чтение файла с явным указанием кодировки UTF-8
+    with open(f'data/{question_type}_questions.json', encoding='utf-8') as file:
         return json.load(file)
 
 
 def select_random_questions(questions_dict):
-    """
-    Случайно выбираем по 5 вопросов из каждой категории.
-    """
     selected_questions = {}
     for qtype, questions in questions_dict.items():
-        num_to_select = min(len(questions), 5)
-        selected_questions[qtype] = random.sample(questions, k=num_to_select)
+        # Убеждаемся, что questions — это список
+        if isinstance(questions, list):
+            num_to_select = min(len(questions), 5)
+            selected_questions[qtype] = random.sample(questions, k=num_to_select)
+        else:
+            print(f"Произошла ошибка: '{qtype}' не является списком")
     return selected_questions
 
 
 def shuffle_answers(questions_list):
-    """
-    Перемешивает порядок ответов для вопросов с выбором.
-    """
     for question in questions_list:
-        random.shuffle(question['answers'])
+        if 'answers' in question:
+            random.shuffle(question['answers'])
+        else:
+            continue  # Пропускаем вопросы без поля 'answers'
 
 
 def check_answer(question_type, question, user_answer):
     """
     Проверяет правильность ответа.
     """
-    correct_answer = question['answer']
-    if question_type == 'choice':
-        return user_answer == str(correct_answer)
-    elif question_type == 'matching':
-        pairs = dict(zip(user_answer.split(','), map(int, correct_answer)))
-        return all(pairs[k] == v for k, v in zip(sorted(pairs.keys()), sorted(map(str, range(1, len(pairs) + 1)))))
-    else:
-        return False  # Открытые вопросы считаем неверными
+    if 'answer' in question:
+        correct_answer = question['answer']
+        if question_type == 'choice':
+            return user_answer == str(correct_answer)
+        elif question_type == 'matching':
+            # Логика для сопоставляющих вопросов
+            pass
+    return False  # Возвращаем False, если поле 'answer' отсутствует
 
 
-def record_results(first_name, last_name, correct_count, total_questions, answers):
+def record_results(first_name, last_name, correct_count, total_questions, user_answers):
     """
-    Записываем результаты в Google Sheets.
+    Записывает результаты в Google Sheets.
     """
     credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, SCOPE)
     client = gspread.authorize(credentials)
     sheet = client.open(SHEET_NAME).sheet1
 
-    # Данные для записи в таблицу
+    # Готовим строку для записи
     row = [
-              first_name + ' ' + last_name,
-              f'{correct_count}/{total_questions}'
-          ] + list(answers.values())
+        first_name + ' ' + last_name,
+        f'{correct_count}/{total_questions}'
+    ]
+
+    # Записываем ответы на вопросы
+    for qtype, answers in user_answers.items():
+        for key, value in answers.items():
+            row.extend([key, value])
 
     sheet.append_row(row)
 
