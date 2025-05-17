@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест</title>
+</head>
+<body>
+    <h1>Ваш тест</h1>
+    <form action="/submit_test" method="post">
+        {% for qtype, questions in data.selected_questions.items() %}
+            <h2>Тип вопроса: {{ qtype.capitalize() }}</h2>
+            {% for idx, question in questions|enumerate(start=1) %}
+                <p>{{ loop.index }} . {{ question.question }}</p>
+                {% if qtype == 'choice' %}
+                    {% for opt_idx, option in question.answers|enumerate(start=1) %}
+                        <div>
+                            <input type="radio" name="{{ qtype}}_{{ idx-1 }}" value="{{ opt_idx }}" required>
+                            <label>{{ option }}</label>
+                        </div>
+                    {% endfor %}
+                {% elif qtype == 'matching' %}
+                    {% for option in question.options %}
+                        <div>
+                            <select name="{{ qtype }}_{{ idx-1 }},{{ loop.index0 }}" required>
+                                {% for ans_opt in question.answers %}
+                                    <option value="{{ ans_opt }}">{{ ans_opt }}</option>
+                                {% endfor %}
+                            </select>
+                            <label>{{ option }}</label>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+        <button type="submit">Отправить</button>
+    </form>
+</body>
+</html>
