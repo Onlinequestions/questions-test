@@ -10,7 +10,7 @@ app.secret_key = 'zjWvyV_bL1UfqA0G_XJqRwfB8P2uYsNhOiqDfvYZGn4='  # Замени�
 
 # Настройки для авторизации в Google Sheets API
 SCOPE = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-CREDENTIALS_FILE = 'data/single-cab-460119-a7-38f35d183f6f.json'  # Новый путь к файлу с ключами
+CREDENTIALS_FILE = 'data/single-cab-460119-a7-08e75c1ecec1.json'  # Новый путь к файлу с ключами
 SHEET_NAME = 'Результаты тестируемых'  # Название листа в Google Sheets
 
 
