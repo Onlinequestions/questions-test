@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session
 import random
+import os
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -10,7 +11,7 @@ app.secret_key = 'zjWvyV_bL1UfqA0G_XJqRwfB8P2uYsNhOiqDfvYZGn4='  # Замени�
 
 # Настройки для авторизации в Google Sheets API
 SCOPE = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-CREDENTIALS_FILE = 'data/single-cab-460119-a7-08e75c1ecec1.json'  # Новый путь к файлу с ключами
+CREDENTIALS_FILE = 'data/single-cab-460119-a7-38f35d183f6f.json'  # Новый путь к файлу с ключами
 SHEET_NAME = 'Результаты тестируемых'  # Название листа в Google Sheets
 
 
@@ -168,5 +169,6 @@ def record_results(first_name, last_name, correct_count, total_questions, user_a
     sheet.append_row(row)
 
 
+# Главный запуск приложения
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))  # Обратите внимание на этот код
