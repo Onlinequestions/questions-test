@@ -1,0 +1,6 @@
+Flask==2.2.*
+gspread==5.1.*
+google-auth>=2.18.*
+google-auth-oauthlib>=0.6.*
+google-api-python-client>=2.91.*
+oauth2client>=4.1.*
